@@ -1,4 +1,4 @@
-use crate::approval::ApprovalManager;
+﻿use crate::approval::ApprovalManager;
 
 /// Format token count with thousands separators.
 fn format_tokens(n: u64) -> String {

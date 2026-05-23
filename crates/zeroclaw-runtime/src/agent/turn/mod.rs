@@ -493,7 +493,7 @@ pub async fn run_tool_call_loop(p: ToolLoop<'_>) -> Result<String> {
             activated_tools,
         )?;
 
-        let (vision_model_provider_box, degrade_strip_images) =
+        let (vision_model_provider_box, degrade_strip_images, image_marker_count) =
             resolve_vision_provider(model_provider, history, multimodal_config, provider_name)?;
 
         let (active_model_provider, active_model_provider_name, active_model): (
@@ -508,7 +508,16 @@ pub async fn run_tool_call_loop(p: ToolLoop<'_>) -> Result<String> {
             let vm = multimodal_config.vision_model.as_deref().unwrap_or(model);
             (vp_box.as_ref(), vp_name, vm)
         } else {
-            (model_provider, provider_name, model)
+            // When images are present and vision_model is configured, switch
+            // the model even if the current provider already supports vision.
+            // This lets operators use a dedicated vision model within the same
+            // provider (e.g. a LiteLLM alias) without duplicating credentials.
+            let vm = if image_marker_count > 0 {
+                multimodal_config.vision_model.as_deref().unwrap_or(model)
+            } else {
+                model
+            };
+            (model_provider, provider_name, vm)
         };
         iteration_tool_specs.refresh_native_tool_mode(active_model_provider);
         let IterationToolSpecs {

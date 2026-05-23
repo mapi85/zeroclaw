@@ -9,7 +9,7 @@ pub(crate) fn resolve_vision_provider(
     history: &[ChatMessage],
     multimodal_config: &MultimodalConfig,
     provider_name: &str,
-) -> Result<(Option<Box<dyn ModelProvider>>, bool)> {
+) -> Result<(Option<Box<dyn ModelProvider>>, bool, usize)> {
     let image_marker_count = multimodal::count_image_markers(history);
     let latest_user_image_marker_count = multimodal::count_latest_user_image_markers(history);
 
@@ -76,7 +76,7 @@ pub(crate) fn resolve_vision_provider(
         None
     };
 
-    Ok((vision_model_provider_box, degrade_strip_images))
+    Ok((vision_model_provider_box, degrade_strip_images, image_marker_count))
 }
 
 pub(crate) async fn prepare_messages_for_iteration(
