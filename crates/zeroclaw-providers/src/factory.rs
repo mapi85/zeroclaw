@@ -380,11 +380,12 @@ impl CompatFamilySpec for LitellmModelProviderConfig {
         key: Option<&str>,
         api_url: Option<&str>,
     ) -> OpenAiCompatibleModelProvider {
+        let effective_key = key.or_else(|| self.base.api_key.as_deref());
         OpenAiCompatibleModelProvider::new_with_vision(
             alias,
             Self::DISPLAY,
             api_url.unwrap_or(Self::DEFAULT_URL),
-            key,
+            effective_key,
             Self::AUTH,
             true,
         )
