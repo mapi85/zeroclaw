@@ -640,6 +640,18 @@ impl CompatFamilySpec for LitellmModelProviderConfig {
     const DEFAULT_URL: &'static str = "http://localhost:4000/v1";
     const AUTH: AuthStyle = AuthStyle::Bearer;
     const FALLBACK_ALLOWS_MISSING_API_KEY: bool = true;
+    /// LiteLLM's per-alias `api_key` from `[providers.models.litellm.<alias>]`
+    /// serves as the credential fallback when the factory call passes no key
+    /// (no global env var), so the Bearer token is still sent.
+    fn build_compat(
+        &self,
+        alias: &str,
+        key: Option<&str>,
+        api_url: Option<&str>,
+    ) -> crate::compatible::OpenAiCompatibleBuilder {
+        let effective_key = key.or_else(|| self.base.api_key.as_deref());
+        self.build_compat_base(alias, effective_key, api_url)
+    }
 }
 impl CompatFamilySpec for CerebrasModelProviderConfig {
     const DISPLAY: &'static str = "Cerebras";
