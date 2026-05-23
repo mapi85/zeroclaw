@@ -1604,7 +1604,16 @@ pub async fn run_tool_call_loop(
             let vm = multimodal_config.vision_model.as_deref().unwrap_or(model);
             (vp_box.as_ref(), vp_name, vm)
         } else {
-            (model_provider, provider_name, model)
+            // When images are present and vision_model is configured, switch
+            // the model even if the current provider already supports vision.
+            // This lets operators use a dedicated vision model within the same
+            // provider (e.g. a LiteLLM alias) without duplicating credentials.
+            let vm = if image_marker_count > 0 {
+                multimodal_config.vision_model.as_deref().unwrap_or(model)
+            } else {
+                model
+            };
+            (model_provider, provider_name, vm)
         };
 
         let prepared_messages =
