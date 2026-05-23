@@ -493,6 +493,29 @@ impl CompatFamilySpec for LitellmModelProviderConfig {
     const DEFAULT_URL: &'static str = "http://localhost:4000/v1";
     const AUTH: AuthStyle = AuthStyle::Bearer;
     const FALLBACK_ALLOWS_MISSING_API_KEY: bool = true;
+
+    fn build_compat(
+        &self,
+        alias: &str,
+        key: Option<&str>,
+        api_url: Option<&str>,
+    ) -> OpenAiCompatibleModelProvider {
+        let mut p = OpenAiCompatibleModelProvider::new_with_vision(
+            alias,
+            Self::DISPLAY,
+            api_url.unwrap_or(Self::DEFAULT_URL),
+            key,
+            Self::AUTH,
+            true,
+        );
+        if let Some(catalog_key) = Self::MODELS_DEV_KEY {
+            p = p.with_models_dev_key(catalog_key);
+        }
+        if let Some(prefix) = Self::OPENROUTER_VENDOR_PREFIX {
+            p = p.with_openrouter_vendor_prefix(prefix);
+        }
+        p
+    }
 }
 impl CompatFamilySpec for CerebrasModelProviderConfig {
     const DISPLAY: &'static str = "Cerebras";
