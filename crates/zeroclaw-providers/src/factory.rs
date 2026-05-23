@@ -373,6 +373,22 @@ impl CompatFamilySpec for LitellmModelProviderConfig {
     const DISPLAY: &'static str = "LiteLLM";
     const DEFAULT_URL: &'static str = "http://localhost:4000/v1";
     const AUTH: AuthStyle = AuthStyle::Bearer;
+
+    fn build_compat(
+        &self,
+        alias: &str,
+        key: Option<&str>,
+        api_url: Option<&str>,
+    ) -> OpenAiCompatibleModelProvider {
+        OpenAiCompatibleModelProvider::new_with_vision(
+            alias,
+            Self::DISPLAY,
+            api_url.unwrap_or(Self::DEFAULT_URL),
+            key,
+            Self::AUTH,
+            true,
+        )
+    }
 }
 impl CompatFamilySpec for CerebrasModelProviderConfig {
     const DISPLAY: &'static str = "Cerebras";

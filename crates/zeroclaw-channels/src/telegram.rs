@@ -875,7 +875,11 @@ impl TelegramChannel {
         let voice_chats = self.voice_chats.clone();
         let api_base = self.api_base.clone();
         let bot_token = self.bot_token.clone();
-        let tts_manager = self.tts_manager.clone().unwrap();
+        // tts_config.is_none() is already checked at the top of this function,
+        // but use let-else to make the invariant explicit and panic-safe.
+        let Some(tts_config) = self.tts_config.clone() else {
+            return;
+        };
 
         if immediate {
             // Finalize path: text is already the final answer — no debounce.
@@ -1586,13 +1590,13 @@ Allowlist Telegram username (without '@') or numeric user ID.",
         let tg_file_path = match self.get_file_path(&attachment.file_id).await {
             Ok(p) => p,
             Err(e) => {
-                ::zeroclaw_log::record!(
-                    WARN,
-                    ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note)
-                        .with_outcome(::zeroclaw_log::EventOutcome::Unknown)
-                        .with_attrs(::serde_json::json!({"error": format!("{}", e)})),
-                    "Failed to get attachment file path"
-                );
+                tracing::warn!("Failed to get attachment file path: {e}");
+                let _ = self
+                    .send(&SendMessage::new(
+                        "⚠️ Could not retrieve your attachment from Telegram. The file may have expired or be unavailable.",
+                        &reply_target,
+                    ))
+                    .await;
                 return None;
             }
         };
@@ -1600,13 +1604,13 @@ Allowlist Telegram username (without '@') or numeric user ID.",
         let file_data = match self.download_file(&tg_file_path).await {
             Ok(d) => d,
             Err(e) => {
-                ::zeroclaw_log::record!(
-                    WARN,
-                    ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note)
-                        .with_outcome(::zeroclaw_log::EventOutcome::Unknown)
-                        .with_attrs(::serde_json::json!({"error": format!("{}", e)})),
-                    "Failed to download attachment"
-                );
+                tracing::warn!("Failed to download attachment: {e}");
+                let _ = self
+                    .send(&SendMessage::new(
+                        "⚠️ Could not download your attachment. Please try resending.",
+                        &reply_target,
+                    ))
+                    .await;
                 return None;
             }
         };
@@ -1623,13 +1627,13 @@ Allowlist Telegram username (without '@') or numeric user ID.",
 
         let local_path = save_dir.join(&local_filename);
         if let Err(e) = tokio::fs::write(&local_path, &file_data).await {
-            ::zeroclaw_log::record!(
-                WARN,
-                ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note)
-                    .with_outcome(::zeroclaw_log::EventOutcome::Unknown)
-                    .with_attrs(::serde_json::json!({"error": format!("{}", e)})),
-                &format!("Failed to save attachment to {}", local_path.display())
-            );
+            tracing::warn!("Failed to save attachment to {}: {e}", local_path.display());
+            let _ = self
+                .send(&SendMessage::new(
+                    "⚠️ Could not save your attachment locally. Check workspace disk space and permissions.",
+                    &reply_target,
+                ))
+                .await;
             return None;
         }
 
@@ -3339,6 +3343,41 @@ impl Channel for TelegramChannel {
         }
 
         self.send_text_chunks(&content, chat_id, thread_id).await
+    }
+
+    async fn add_reaction(
+        &self,
+        channel_id: &str,
+        message_id: &str,
+        emoji: &str,
+    ) -> anyhow::Result<()> {
+        // message_id is formatted as "telegram_{chat_id}_{numeric_id}"
+        let Some((_, numeric_id)) = message_id.rsplit_once('_') else {
+            return Ok(());
+        };
+        let Ok(msg_id_i64) = numeric_id.parse::<i64>() else {
+            return Ok(());
+        };
+        // Map to Telegram-supported reaction emoji (🚫 and ⚠️ are not in Telegram's reaction set)
+        let tg_emoji = match emoji {
+            "🚫" => "👎",
+            "⚠️" => "😢",
+            other => other,
+        };
+        let (chat_id, _) = Self::parse_reply_target(channel_id);
+        let body = build_telegram_ack_reaction_request(&chat_id, msg_id_i64, tg_emoji);
+        let response = self
+            .http_client()
+            .post(self.api_url("setMessageReaction"))
+            .json(&body)
+            .send()
+            .await?;
+        if !response.status().is_success() {
+            let status = response.status();
+            let err_body = response.text().await.unwrap_or_default();
+            anyhow::bail!("Telegram setMessageReaction failed: status={status}, body={err_body}");
+        }
+        Ok(())
     }
 
     async fn listen(&self, tx: tokio::sync::mpsc::Sender<ChannelMessage>) -> anyhow::Result<()> {
