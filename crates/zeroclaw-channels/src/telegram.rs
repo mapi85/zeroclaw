@@ -875,9 +875,9 @@ impl TelegramChannel {
         let voice_chats = self.voice_chats.clone();
         let api_base = self.api_base.clone();
         let bot_token = self.bot_token.clone();
-        // tts_config.is_none() is already checked at the top of this function,
+        // tts_manager.is_none() is already checked at the top of this function,
         // but use let-else to make the invariant explicit and panic-safe.
-        let Some(tts_config) = self.tts_config.clone() else {
+        let Some(tts_manager) = self.tts_manager.clone() else {
             return;
         };
 
@@ -1590,7 +1590,7 @@ Allowlist Telegram username (without '@') or numeric user ID.",
         let tg_file_path = match self.get_file_path(&attachment.file_id).await {
             Ok(p) => p,
             Err(e) => {
-                tracing::warn!("Failed to get attachment file path: {e}");
+                ::zeroclaw_log::record!(WARN, ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note).with_outcome(::zeroclaw_log::EventOutcome::Unknown).with_attrs(::serde_json::json!({"error": e.to_string()})), "failed to get attachment file path");
                 let _ = self
                     .send(&SendMessage::new(
                         "⚠️ Could not retrieve your attachment from Telegram. The file may have expired or be unavailable.",
@@ -1604,7 +1604,7 @@ Allowlist Telegram username (without '@') or numeric user ID.",
         let file_data = match self.download_file(&tg_file_path).await {
             Ok(d) => d,
             Err(e) => {
-                tracing::warn!("Failed to download attachment: {e}");
+                ::zeroclaw_log::record!(WARN, ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note).with_outcome(::zeroclaw_log::EventOutcome::Unknown).with_attrs(::serde_json::json!({"error": e.to_string()})), "failed to download attachment");
                 let _ = self
                     .send(&SendMessage::new(
                         "⚠️ Could not download your attachment. Please try resending.",
@@ -1627,7 +1627,7 @@ Allowlist Telegram username (without '@') or numeric user ID.",
 
         let local_path = save_dir.join(&local_filename);
         if let Err(e) = tokio::fs::write(&local_path, &file_data).await {
-            tracing::warn!("Failed to save attachment to {}: {e}", local_path.display());
+            ::zeroclaw_log::record!(WARN, ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note).with_outcome(::zeroclaw_log::EventOutcome::Unknown).with_attrs(::serde_json::json!({"path": local_path.display().to_string(), "error": e.to_string()})), "failed to save attachment locally");
             let _ = self
                 .send(&SendMessage::new(
                     "⚠️ Could not save your attachment locally. Check workspace disk space and permissions.",
