@@ -154,6 +154,32 @@ pub fn contains_image_markers(messages: &[ChatMessage]) -> bool {
     count_image_markers(messages) > 0
 }
 
+/// Replace every `[IMAGE:...]` marker in `content` with the literal text `[image]`.
+///
+/// Call this after the vision model has processed an image so the raw file path
+/// or base64 payload is not re-encoded and re-sent in subsequent turns.
+pub fn replace_image_markers_with_placeholder(content: &str) -> String {
+    const PREFIX: &str = "[IMAGE:";
+    if !content.contains(PREFIX) {
+        return content.to_string();
+    }
+    let mut result = String::with_capacity(content.len());
+    let mut remaining = content;
+    while let Some(start) = remaining.find(PREFIX) {
+        result.push_str(&remaining[..start]);
+        result.push_str("[image]");
+        let after_prefix = &remaining[start + PREFIX.len()..];
+        if let Some(end) = after_prefix.find(']') {
+            remaining = &after_prefix[end + 1..];
+        } else {
+            result.push_str(after_prefix);
+            return result;
+        }
+    }
+    result.push_str(remaining);
+    result
+}
+
 /// Replace media markers (`[IMAGE:...]`, `[PHOTO:...]`, `[DOCUMENT:...]`,
 /// `[FILE:...]`, `[VIDEO:...]`, `[VOICE:...]`, `[AUDIO:...]`) with
 /// `[media attachment]`. Match is case-insensitive to align with the channel

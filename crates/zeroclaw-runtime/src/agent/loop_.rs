@@ -1995,6 +1995,18 @@ pub async fn run_tool_call_loop(
             }
         };
 
+        // The vision model just processed any images present in the current turn.
+        // Replace their markers in history with [image] so subsequent turns send
+        // only lightweight placeholder text instead of re-encoding the raw data.
+        if image_marker_count > 0 {
+            for msg in history.iter_mut() {
+                if msg.content.contains("[IMAGE:") {
+                    msg.content =
+                        multimodal::replace_image_markers_with_placeholder(&msg.content);
+                }
+            }
+        }
+
         let display_text = resolve_display_text(
             &response_text,
             &parsed_text,
