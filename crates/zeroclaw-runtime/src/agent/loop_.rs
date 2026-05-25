@@ -1442,7 +1442,17 @@ pub async fn run_tool_call_loop(
             .collect();
         let use_native_tools = model_provider.supports_native_tools() && !tool_specs.is_empty();
 
-        let image_marker_count = multimodal::count_image_markers(history);
+        // Count image markers only from the last user message onwards so that
+        // vision-model routing is not sticky across turns: an image sent in a
+        // prior turn must not force the vision model for every subsequent
+        // text-only exchange for the lifetime of the session.
+        let image_marker_count = {
+            let turn_start = history
+                .iter()
+                .rposition(|m| m.role == "user")
+                .unwrap_or(history.len());
+            multimodal::count_image_markers(&history[turn_start..])
+        };
 
         // ── Vision model_provider routing ──────────────────────────
         // When the default model_provider lacks vision support but a dedicated

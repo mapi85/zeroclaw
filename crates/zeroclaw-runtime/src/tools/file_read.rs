@@ -148,6 +148,9 @@ impl Tool for FileReadTool {
         // Check file size AFTER canonicalization to prevent TOCTOU symlink bypass
         match tokio::fs::metadata(&resolved_path).await {
             Ok(meta) => {
+                if meta.is_dir() {
+                    return list_directory(&resolved_path).await;
+                }
                 if meta.len() > MAX_FILE_SIZE_BYTES {
                     return Ok(ToolResult {
                         success: false,
@@ -262,6 +265,32 @@ impl Tool for FileReadTool {
             }
         }
     }
+}
+
+async fn list_directory(path: &std::path::Path) -> anyhow::Result<ToolResult> {
+    let mut read_dir = tokio::fs::read_dir(path).await.map_err(|e| {
+        anyhow::Error::msg(format!("Failed to list directory: {e}"))
+    })?;
+    let mut entries: Vec<String> = Vec::new();
+    while let Some(entry) = read_dir.next_entry().await.map_err(|e| {
+        anyhow::Error::msg(format!("Failed to read directory entry: {e}"))
+    })? {
+        let name = entry.file_name();
+        let is_dir = entry.file_type().await.map(|t| t.is_dir()).unwrap_or(false);
+        let suffix = if is_dir { "/" } else { "" };
+        entries.push(format!("{}{suffix}", name.to_string_lossy()));
+    }
+    entries.sort();
+    let output = if entries.is_empty() {
+        format!("[Directory: {} (empty)]", path.display())
+    } else {
+        format!("[Directory: {}]\n{}", path.display(), entries.join("\n"))
+    };
+    Ok(ToolResult {
+        success: true,
+        output,
+        error: None,
+    })
 }
 
 #[cfg(feature = "rag-pdf")]
