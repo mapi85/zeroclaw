@@ -442,6 +442,31 @@ const MEDIA_MARKER_KINDS: &[&str] = &[
 /// document and file delivery.
 const AUDIO_MARKER_KINDS: &[&str] = &["VOICE", "AUDIO"];
 
+/// Replace every `[IMAGE:...]` marker in `content` with the literal text `[image]`
+/// after the vision model has processed the image, so the raw file path or base64
+/// payload is not re-encoded and re-sent in subsequent turns.
+pub fn replace_image_markers_with_placeholder(content: &str) -> String {
+    const PREFIX: &str = "[IMAGE:";
+    if !content.contains(PREFIX) {
+        return content.to_string();
+    }
+    let mut result = String::with_capacity(content.len());
+    let mut remaining = content;
+    while let Some(start) = remaining.find(PREFIX) {
+        result.push_str(&remaining[..start]);
+        result.push_str("[image]");
+        let after_prefix = &remaining[start + PREFIX.len()..];
+        if let Some(end) = after_prefix.find(']') {
+            remaining = &after_prefix[end + 1..];
+        } else {
+            result.push_str(after_prefix);
+            return result;
+        }
+    }
+    result.push_str(remaining);
+    result
+}
+
 pub fn strip_media_markers(text: &str) -> String {
     static RE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
         regex::Regex::new(&format!(

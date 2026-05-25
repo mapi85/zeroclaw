@@ -1187,6 +1187,15 @@ pub async fn run_tool_call_loop(mut p: ToolLoop<'_>) -> Result<String> {
                 )
                 .await;
             }
+            // Vision model just processed this turn's images — replace markers with
+            // [image] so subsequent text-only turns don't re-encode the raw data.
+            if image_marker_count > 0 {
+                for m in history.iter_mut() {
+                    if m.content.contains("[IMAGE:") {
+                        m.content = zeroclaw_providers::multimodal::replace_image_markers_with_placeholder(&m.content);
+                    }
+                }
+            }
             return Ok(accumulated_display_text);
         }
 
@@ -1463,6 +1472,15 @@ pub async fn run_tool_call_loop(mut p: ToolLoop<'_>) -> Result<String> {
                 observer,
             )
             .await;
+        }
+        // Vision model processed images this iteration — replace markers so the next
+        // iteration doesn't re-encode or re-route them through the vision model.
+        if image_marker_count > 0 {
+            for m in history.iter_mut() {
+                if m.content.contains("[IMAGE:") {
+                    m.content = zeroclaw_providers::multimodal::replace_image_markers_with_placeholder(&m.content);
+                }
+            }
         }
     }
 
