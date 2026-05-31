@@ -1285,6 +1285,15 @@ impl Agent {
     }
 
     async fn execute_tool_call(&self, call: &ParsedToolCall) -> ToolExecutionResult {
+        if let Some(ref err) = call.parse_error {
+            return ToolExecutionResult {
+                name: call.name.clone(),
+                output: format!("Provider returned malformed tool arguments: {err}"),
+                success: false,
+                tool_call_id: call.tool_call_id.clone(),
+            };
+        }
+
         let start = Instant::now();
 
         // ── Hook: before_tool_call (modifying) ──────────────────
@@ -3130,6 +3139,7 @@ mod tests {
                 name: "echo".into(),
                 arguments: serde_json::json!({"message": "hi"}),
                 tool_call_id: Some("tc1".into()),
+                parse_error: None,
             })
             .await;
 
@@ -3188,6 +3198,7 @@ mod tests {
                 name: "echo".into(),
                 arguments: serde_json::json!({"message": "hi"}),
                 tool_call_id: Some("tc1".into()),
+                parse_error: None,
             })
             .await;
 
@@ -3250,6 +3261,7 @@ mod tests {
                     "approved": true
                 }),
                 tool_call_id: Some("tc1".into()),
+                parse_error: None,
             })
             .await;
 
@@ -3313,6 +3325,7 @@ mod tests {
                     "approved": false
                 }),
                 tool_call_id: Some("tc1".into()),
+                parse_error: None,
             })
             .await;
 
@@ -3381,6 +3394,7 @@ mod tests {
                     "approved": false
                 }),
                 tool_call_id: Some("tc1".into()),
+                parse_error: None,
             })
             .await;
         let second_result = agent
@@ -3391,6 +3405,7 @@ mod tests {
                     "approved": false
                 }),
                 tool_call_id: Some("tc2".into()),
+                parse_error: None,
             })
             .await;
 
@@ -3445,6 +3460,7 @@ mod tests {
                     "approved": true
                 }),
                 tool_call_id: Some("tc1".into()),
+                parse_error: None,
             })
             .await;
 

@@ -1877,13 +1877,21 @@ pub async fn run_tool_call_loop(
                 } else {
                     resp.tool_calls
                         .iter()
-                        .map(|call| ParsedToolCall {
-                            name: call.name.clone(),
-                            arguments: serde_json::from_str::<serde_json::Value>(&call.arguments)
-                                .unwrap_or_else(|_| {
-                                    serde_json::Value::Object(serde_json::Map::new())
-                                }),
-                            tool_call_id: Some(call.id.clone()),
+                        .map(|call| {
+                            let (arguments, parse_error) =
+                                match serde_json::from_str::<serde_json::Value>(&call.arguments) {
+                                    Ok(v) => (v, None),
+                                    Err(e) => (
+                                        serde_json::Value::Object(serde_json::Map::new()),
+                                        Some(format!("{e}")),
+                                    ),
+                                };
+                            ParsedToolCall {
+                                name: call.name.clone(),
+                                arguments,
+                                tool_call_id: Some(call.id.clone()),
+                                parse_error,
+                            }
                         })
                         .collect()
                 };
@@ -2240,6 +2248,42 @@ pub async fn run_tool_call_loop(
         let mut executable_calls: Vec<ParsedToolCall> = Vec::new();
 
         for (idx, call) in tool_calls.iter().enumerate() {
+            // ── Parse-error short-circuit ────────────────────
+            // The provider returned JSON that could not be parsed for this call.
+            // Surface the real error rather than letting the tool report a
+            // misleading "Missing parameter" failure.
+            if let Some(ref err) = call.parse_error {
+                let msg = format!("Provider returned malformed tool arguments: {err}");
+                ::zeroclaw_log::record!(
+                    WARN,
+                    ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Reject)
+                        .with_outcome(::zeroclaw_log::EventOutcome::Failure)
+                        .with_attrs(::serde_json::json!({
+                            "tool": call.name,
+                            "error": err,
+                            "trace_id": turn_id,
+                        })),
+                    "tool call aborted: malformed arguments from provider"
+                );
+                if let Some(ref tx) = on_delta {
+                    let _ = tx
+                        .send(StreamDelta::Status(format!("\u{274c} {}: {msg}\n", call.name)))
+                        .await;
+                }
+                ordered_results[idx] = Some((
+                    call.name.clone(),
+                    call.tool_call_id.clone(),
+                    ToolExecutionOutcome {
+                        output: msg.clone(),
+                        success: false,
+                        error_reason: Some(err.clone()),
+                        duration: Duration::ZERO,
+                        receipt: None,
+                    },
+                ));
+                continue;
+            }
+
             // ── Hook: before_tool_call (modifying) ──────────
             let mut tool_name = call.name.clone();
             let mut tool_args = call.arguments.clone();
@@ -2515,6 +2559,7 @@ pub async fn run_tool_call_loop(
                 name: tool_name,
                 arguments: tool_args,
                 tool_call_id: call.tool_call_id.clone(),
+                parse_error: None,
             });
         }
 
@@ -6865,6 +6910,7 @@ mod tests {
             name: "file_read".to_string(),
             arguments: serde_json::json!({"path": "a.txt"}),
             tool_call_id: None,
+            parse_error: None,
         }];
 
         assert!(!should_execute_tools_in_parallel(&calls, None));
@@ -6877,11 +6923,13 @@ mod tests {
                 name: "shell".to_string(),
                 arguments: serde_json::json!({"command": "pwd"}),
                 tool_call_id: None,
+                parse_error: None,
             },
             ParsedToolCall {
                 name: "http_request".to_string(),
                 arguments: serde_json::json!({"url": "https://example.com"}),
                 tool_call_id: None,
+                parse_error: None,
             },
         ];
         let approval_cfg = zeroclaw_config::schema::RiskProfileConfig::default();
@@ -6900,11 +6948,13 @@ mod tests {
                 name: "shell".to_string(),
                 arguments: serde_json::json!({"command": "pwd"}),
                 tool_call_id: None,
+                parse_error: None,
             },
             ParsedToolCall {
                 name: "http_request".to_string(),
                 arguments: serde_json::json!({"url": "https://example.com"}),
                 tool_call_id: None,
+                parse_error: None,
             },
         ];
         let approval_cfg = zeroclaw_config::schema::RiskProfileConfig {
@@ -10984,6 +11034,7 @@ Let me check the result."#;
             name: "shell".into(),
             arguments: serde_json::json!({"command": "pwd"}),
             tool_call_id: Some("call_2".into()),
+            parse_error: None,
         }];
         let result = build_native_assistant_history_from_parsed_calls(
             "answer",
@@ -11003,6 +11054,7 @@ Let me check the result."#;
             name: "shell".into(),
             arguments: serde_json::json!({"command": "pwd"}),
             tool_call_id: Some("call_2".into()),
+            parse_error: None,
         }];
         let result = build_native_assistant_history_from_parsed_calls("answer", &calls, None);
         assert!(result.is_some());
