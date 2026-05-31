@@ -10,6 +10,9 @@ pub struct ParsedToolCall {
     pub name: String,
     pub arguments: serde_json::Value,
     pub tool_call_id: Option<String>,
+    /// Set when the provider returned arguments JSON that could not be parsed.
+    /// Execution paths must short-circuit with an error rather than calling the tool.
+    pub parse_error: Option<String>,
 }
 
 /// Internal tool protocol envelope variants that must not be treated as
@@ -180,6 +183,7 @@ fn parse_tool_call_value(value: &serde_json::Value) -> Option<ParsedToolCall> {
                 name,
                 arguments,
                 tool_call_id,
+                parse_error: None,
             });
         }
     }
@@ -202,6 +206,7 @@ fn parse_tool_call_value(value: &serde_json::Value) -> Option<ParsedToolCall> {
         name,
         arguments,
         tool_call_id,
+        parse_error: None,
     })
 }
 
@@ -931,6 +936,7 @@ fn parse_xml_tool_calls(xml_content: &str) -> Option<Vec<ParsedToolCall>> {
             name: tool_name,
             arguments: serde_json::Value::Object(args),
             tool_call_id: None,
+            parse_error: None,
         });
     }
 
@@ -1010,6 +1016,7 @@ fn parse_minimax_invoke_calls(response: &str) -> Option<(String, Vec<ParsedToolC
             name: name.to_string(),
             arguments: serde_json::Value::Object(args),
             tool_call_id: None,
+            parse_error: None,
         });
     }
 
@@ -1477,6 +1484,7 @@ fn parse_xml_attribute_tool_calls(response: &str) -> Vec<ParsedToolCall> {
                 name: map_tool_name_alias(tool_name).to_string(),
                 arguments: serde_json::Value::Object(arguments),
                 tool_call_id: None,
+                parse_error: None,
             });
         }
     }
@@ -1550,6 +1558,7 @@ fn parse_perl_style_tool_calls(response: &str) -> Vec<ParsedToolCall> {
                 name: map_tool_name_alias(tool_name).to_string(),
                 arguments: serde_json::Value::Object(arguments),
                 tool_call_id: None,
+                parse_error: None,
             });
         }
     }
@@ -1595,6 +1604,7 @@ fn parse_function_call_tool_calls(response: &str) -> Vec<ParsedToolCall> {
                 name: map_tool_name_alias(tool_name).to_string(),
                 arguments: serde_json::Value::Object(arguments),
                 tool_call_id: None,
+                parse_error: None,
             });
         }
     }
@@ -1802,6 +1812,7 @@ fn parse_glm_shortened_body(body: &str) -> Option<ParsedToolCall> {
                 name: tool_name.to_string(),
                 arguments: serde_json::Value::Object(args),
                 tool_call_id: None,
+                parse_error: None,
             });
         }
     }
@@ -1833,6 +1844,7 @@ fn parse_glm_shortened_body(body: &str) -> Option<ParsedToolCall> {
                 name: tool_name.to_string(),
                 arguments: serde_json::Value::Object(args),
                 tool_call_id: None,
+                parse_error: None,
             });
         }
     }
@@ -1859,6 +1871,7 @@ fn parse_glm_shortened_body(body: &str) -> Option<ParsedToolCall> {
             name: tool_name.to_string(),
             arguments,
             tool_call_id: None,
+            parse_error: None,
         });
     }
 
@@ -2434,6 +2447,7 @@ pub fn parse_tool_calls(response: &str) -> (String, Vec<ParsedToolCall>) {
                         name: tool_name.to_string(),
                         arguments,
                         tool_call_id: None,
+                        parse_error: None,
                     });
                 }
             }
@@ -2540,6 +2554,7 @@ pub fn parse_tool_calls(response: &str) -> (String, Vec<ParsedToolCall>) {
                     name: name.clone(),
                     arguments: args.clone(),
                     tool_call_id: None,
+                    parse_error: None,
                 });
                 if let Some(r) = raw {
                     cleaned_text = cleaned_text.replace(r, "");
@@ -3376,6 +3391,7 @@ mod tests {
             name: "shell".into(),
             arguments: serde_json::json!({"command": "pwd"}),
             tool_call_id: Some("call_1".into()),
+            parse_error: None,
         }];
         let result = build_native_assistant_history_from_parsed_calls("answer", &calls, None);
         let s = result.expect("Some(_) for non-empty tool_calls");
@@ -5205,6 +5221,7 @@ Let me check the result."#;
             name: "shell".into(),
             arguments: serde_json::json!({"command": "pwd"}),
             tool_call_id: Some("call_2".into()),
+            parse_error: None,
         }];
         let result = build_native_assistant_history_from_parsed_calls(
             "answer",
@@ -5224,6 +5241,7 @@ Let me check the result."#;
             name: "shell".into(),
             arguments: serde_json::json!({"command": "pwd"}),
             tool_call_id: Some("call_2".into()),
+            parse_error: None,
         }];
         let result = build_native_assistant_history_from_parsed_calls("answer", &calls, None);
         assert!(result.is_some());
