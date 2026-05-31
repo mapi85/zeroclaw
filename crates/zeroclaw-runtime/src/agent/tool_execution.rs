@@ -455,17 +455,33 @@ pub(crate) async fn execute_tools_parallel(
     let futures: Vec<_> = tool_calls
         .iter()
         .map(|call| {
-            execute_one_tool(
-                &call.name,
-                call.arguments.clone(),
-                call.tool_call_id.as_deref(),
-                dispatch,
-                meta,
-                observer,
-                cancellation_token,
-                receipt_generator,
-                event_tx,
-            )
+            let parse_error = call.parse_error.clone();
+            let name = call.name.clone();
+            let arguments = call.arguments.clone();
+            let tool_call_id = call.tool_call_id.clone();
+            async move {
+                if let Some(ref err) = parse_error {
+                    return Ok(ToolExecutionOutcome {
+                        output: format!("Provider returned malformed tool arguments: {err}"),
+                        success: false,
+                        error_reason: Some("malformed_arguments".to_string()),
+                        duration: Duration::ZERO,
+                        receipt: None,
+                    });
+                }
+                execute_one_tool(
+                    &name,
+                    arguments,
+                    tool_call_id.as_deref(),
+                    dispatch,
+                    meta,
+                    observer,
+                    cancellation_token,
+                    receipt_generator,
+                    event_tx,
+                )
+                .await
+            }
         })
         .collect();
 
@@ -498,22 +514,32 @@ pub(crate) async fn execute_tools_sequential(
         if cancellation_token.is_some_and(CancellationToken::is_cancelled) {
             break;
         }
-        let outcome = match execute_one_tool(
-            &call.name,
-            call.arguments.clone(),
-            call.tool_call_id.as_deref(),
-            dispatch,
-            meta,
-            observer,
-            cancellation_token,
-            receipt_generator,
-            event_tx,
-        )
-        .await
-        {
-            Ok(outcome) => outcome,
-            Err(e) if is_tool_loop_cancelled(&e) => break,
-            Err(e) => return Err(e),
+        let outcome = if let Some(ref err) = call.parse_error {
+            ToolExecutionOutcome {
+                output: format!("Provider returned malformed tool arguments: {err}"),
+                success: false,
+                error_reason: Some("malformed_arguments".to_string()),
+                duration: Duration::ZERO,
+                receipt: None,
+            }
+        } else {
+            match execute_one_tool(
+                &call.name,
+                call.arguments.clone(),
+                call.tool_call_id.as_deref(),
+                dispatch,
+                meta,
+                observer,
+                cancellation_token,
+                receipt_generator,
+                event_tx,
+            )
+            .await
+            {
+                Ok(outcome) => outcome,
+                Err(e) if is_tool_loop_cancelled(&e) => break,
+                Err(e) => return Err(e),
+            }
         };
         slots.push(Some(outcome));
     }

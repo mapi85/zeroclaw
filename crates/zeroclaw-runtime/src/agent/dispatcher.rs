@@ -9,6 +9,9 @@ pub struct ParsedToolCall {
     pub name: String,
     pub arguments: Value,
     pub tool_call_id: Option<String>,
+    /// Set when the provider returned JSON that could not be parsed.
+    /// Execution paths must short-circuit with an error rather than calling the tool.
+    pub parse_error: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -66,6 +69,7 @@ impl XmlToolDispatcher {
                             name,
                             arguments,
                             tool_call_id: None,
+                            parse_error: None,
                         });
                     }
                     Err(e) => {
@@ -196,13 +200,20 @@ impl ToolDispatcher for NativeToolDispatcher {
         let calls = response
             .tool_calls
             .iter()
-            .map(|tc| ParsedToolCall {
-                name: tc.name.clone(),
-                arguments: serde_json::from_str(&tc.arguments).unwrap_or_else(|e| {
-                    ::zeroclaw_log::record!(WARN, ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note).with_category(::zeroclaw_log::EventCategory::Tool).with_outcome(::zeroclaw_log::EventOutcome::Unknown).with_attrs(::serde_json::json!({"tool": tc.name, "error": format!("{}", e)})), "Failed to parse native tool call arguments as JSON; defaulting to empty object");
-                    Value::Object(serde_json::Map::new())
-                }),
-                tool_call_id: Some(tc.id.clone()),
+            .map(|tc| {
+                let (arguments, parse_error) = match serde_json::from_str(&tc.arguments) {
+                    Ok(v) => (v, None),
+                    Err(e) => {
+                        ::zeroclaw_log::record!(WARN, ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note).with_category(::zeroclaw_log::EventCategory::Tool).with_outcome(::zeroclaw_log::EventOutcome::Failure).with_attrs(::serde_json::json!({"tool": tc.name, "error": format!("{}", e)})), "Failed to parse native tool call arguments as JSON");
+                        (Value::Object(serde_json::Map::new()), Some(format!("{e}")))
+                    }
+                };
+                ParsedToolCall {
+                    name: tc.name.clone(),
+                    arguments,
+                    tool_call_id: Some(tc.id.clone()),
+                    parse_error,
+                }
             })
             .collect();
         (text, calls)
