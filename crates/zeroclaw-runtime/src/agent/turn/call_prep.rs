@@ -292,6 +292,7 @@ pub(crate) async fn prepare_tool_calls(
             name: tool_name.clone(),
             arguments: tool_args.clone(),
             tool_call_id: call.tool_call_id.clone(),
+            parse_error: None,
         });
         // Pin the resolved id onto the executable call so the pending ToolCall
         // and the terminal ToolResult (both emitted by the executor at dispatch
@@ -301,6 +302,7 @@ pub(crate) async fn prepare_tool_calls(
             name: tool_name,
             arguments: tool_args,
             tool_call_id: Some(call_id),
+            parse_error: None,
         });
     }
 
