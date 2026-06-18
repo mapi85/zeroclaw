@@ -128,6 +128,7 @@ mod tests {
             name: "echo".into(),
             arguments: serde_json::json!({}),
             tool_call_id: id.map(str::to_string),
+            parse_error: None,
         }
     }
 

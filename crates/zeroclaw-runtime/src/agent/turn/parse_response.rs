@@ -182,6 +182,7 @@ pub(crate) async fn interpret_chat_response(
                 arguments: serde_json::from_str::<serde_json::Value>(&call.arguments)
                     .unwrap_or_else(|_| serde_json::Value::Object(serde_json::Map::new())),
                 tool_call_id: Some(call.id.clone()),
+                parse_error: None,
             })
             .collect()
     };
