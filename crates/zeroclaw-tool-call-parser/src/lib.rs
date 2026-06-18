@@ -29,11 +29,35 @@ pub enum ToolProtocolEnvelopeKind {
 fn parse_arguments_value(raw: Option<&serde_json::Value>) -> serde_json::Value {
     let initial = match raw {
         Some(serde_json::Value::String(s)) => serde_json::from_str::<serde_json::Value>(s)
-            .unwrap_or_else(|_| serde_json::Value::Object(serde_json::Map::new())),
+            .unwrap_or_else(|_| rescue_short_string_params(s)),
         Some(value) => value.clone(),
         None => serde_json::Value::Object(serde_json::Map::new()),
     };
     unwrap_nested_json_strings(initial)
+}
+
+/// Salvage simple string parameters from malformed or truncated JSON.
+///
+/// When a tool-call JSON is truncated (typically because a large `content`
+/// field exceeded a streaming buffer), parameters that appeared before the
+/// cut-off point are still present in the raw string. This lets tools like
+/// `file_write` report "missing content" rather than the misleading
+/// "missing path" when `path` was provided first but `content` was cut off.
+fn rescue_short_string_params(s: &str) -> serde_json::Value {
+    static RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r#""([a-zA-Z_][a-zA-Z0-9_]*)"\s*:\s*"((?:[^"\\]|\\.)*)""#).unwrap()
+    });
+    let mut map = serde_json::Map::new();
+    for cap in RE.captures_iter(s) {
+        // Re-encode as a JSON string so serde_json handles all escape sequences
+        // (\n, \t, \\, \", etc.) correctly when it decodes the value.
+        let json_string = format!("\"{}\"", &cap[2]);
+        let value = serde_json::from_str::<String>(&json_string)
+            .unwrap_or_else(|_| cap[2].to_string());
+        map.entry(cap[1].to_string())
+            .or_insert(serde_json::Value::String(value));
+    }
+    serde_json::Value::Object(map)
 }
 
 /// Recursively unwrap stringified JSON objects/arrays nested inside tool arguments.
