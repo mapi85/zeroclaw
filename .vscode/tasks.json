@@ -9,6 +9,21 @@
     }
   ],
   "tasks": [
+    // ── Upstream sync (auto on folder open) ──────────────
+    {
+      "label": "Sync: upstream → local/dev",
+      "type": "shell",
+      "command": "bash",
+      "args": ["${workspaceFolder}/docs/local/sync-upstream.sh"],
+      "runOptions": { "runOn": "folderOpen" },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": []
+    },
     // ── Build ──────────────────────────────────────────────
     {
       "label": "Build: Debug",
