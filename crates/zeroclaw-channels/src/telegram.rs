@@ -1138,9 +1138,9 @@ impl TelegramChannel {
         let voice_peer_resolver = self.voice_peer_resolver.clone();
         let api_base = self.api_base.clone();
         let bot_token = self.bot_token.clone();
-        // tts_config.is_none() is already checked at the top of this function,
+        // tts_manager.is_none() is already checked at the top of this function,
         // but use let-else to make the invariant explicit and panic-safe.
-        let Some(tts_config) = self.tts_config.clone() else {
+        let Some(tts_manager) = self.tts_manager.clone() else {
             return;
         };
 
