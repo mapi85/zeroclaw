@@ -1427,6 +1427,7 @@ fn parse_malformed_file_write_call(input: &str) -> Option<ParsedToolCall> {
         name: "file_write".to_string(),
         arguments,
         tool_call_id: None,
+        parse_error: None,
     })
 }
 
@@ -2451,6 +2452,7 @@ pub fn parse_tool_calls(response: &str) -> (String, Vec<ParsedToolCall>) {
                         name: "file_write".to_string(),
                         arguments,
                         tool_call_id: None,
+                        parse_error: None,
                     });
                 } else {
                     // Log a warning if we found a tool block but couldn't parse arguments
