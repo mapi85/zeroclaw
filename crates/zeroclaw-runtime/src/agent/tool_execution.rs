@@ -463,6 +463,7 @@ pub(crate) async fn execute_tools_parallel(
                 if let Some(ref err) = parse_error {
                     return Ok(ToolExecutionOutcome {
                         output: format!("Provider returned malformed tool arguments: {err}"),
+                        output_data: None,
                         success: false,
                         error_reason: Some("malformed_arguments".to_string()),
                         duration: Duration::ZERO,
@@ -517,6 +518,7 @@ pub(crate) async fn execute_tools_sequential(
         let outcome = if let Some(ref err) = call.parse_error {
             ToolExecutionOutcome {
                 output: format!("Provider returned malformed tool arguments: {err}"),
+                output_data: None,
                 success: false,
                 error_reason: Some("malformed_arguments".to_string()),
                 duration: Duration::ZERO,

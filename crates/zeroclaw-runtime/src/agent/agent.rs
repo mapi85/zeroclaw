@@ -2063,7 +2063,9 @@ impl Agent {
                     &base_provider_messages,
                     &self.multimodal_config,
                     &self.model_provider_name,
-                    self.config.as_deref(),
+                    self.provider_switch_config
+                        .as_ref()
+                        .and_then(|p| p.config.as_deref()),
                 )?;
             let active_provider: &dyn ModelProvider = vision_provider_box
                 .as_deref()
@@ -2132,7 +2134,9 @@ impl Agent {
                                 temperature: self.temperature,
                             },
                             crate::agent::loop_::ResolvedIo {
-                provider_config: self.config.as_deref(),
+                provider_config: self.provider_switch_config
+                        .as_ref()
+                        .and_then(|p| p.config.as_deref()),
                                 tools_registry: &self.tools,
                                 observer: self.observer.as_ref(),
                                 silent: false,
@@ -2333,7 +2337,9 @@ impl Agent {
                     &base_provider_messages,
                     &self.multimodal_config,
                     &self.model_provider_name,
-                    self.config.as_deref(),
+                    self.provider_switch_config
+                        .as_ref()
+                        .and_then(|p| p.config.as_deref()),
                 )
                 .map_err(|error| StreamedTurnError {
                     error,
@@ -2460,7 +2466,9 @@ impl Agent {
                                     temperature: self.temperature,
                                 },
                                 crate::agent::loop_::ResolvedIo {
-                provider_config: self.config.as_deref(),
+                provider_config: self.provider_switch_config
+                        .as_ref()
+                        .and_then(|p| p.config.as_deref()),
                                     tools_registry: &self.tools,
                                     observer: self.observer.as_ref(),
                                     silent: true,
