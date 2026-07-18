@@ -1,4 +1,4 @@
-﻿use crate::agent::dispatcher::{NativeToolDispatcher, ToolDispatcher, XmlToolDispatcher};
+use crate::agent::dispatcher::{NativeToolDispatcher, ToolDispatcher, XmlToolDispatcher};
 use crate::agent::eval::AutoClassifyExt;
 use crate::agent::prompt::{PromptContext, SystemPromptBuilder};
 use crate::approval::ApprovalManager;
@@ -2057,12 +2057,13 @@ impl Agent {
 
         let active_dispatcher = {
             let base_provider_messages = self.tool_dispatcher.to_provider_messages(&self.history);
-            let (vision_provider_box, _degrade_strip_images) =
+            let (vision_provider_box, _degrade_strip_images, _image_marker_count) =
                 crate::agent::turn::resolve_vision_provider(
                     self.model_provider.as_ref(),
                     &base_provider_messages,
                     &self.multimodal_config,
                     &self.model_provider_name,
+                    self.config.as_deref(),
                 )?;
             let active_provider: &dyn ModelProvider = vision_provider_box
                 .as_deref()
@@ -2131,6 +2132,7 @@ impl Agent {
                                 temperature: self.temperature,
                             },
                             crate::agent::loop_::ResolvedIo {
+                provider_config: self.config.as_deref(),
                                 tools_registry: &self.tools,
                                 observer: self.observer.as_ref(),
                                 silent: false,
@@ -2325,12 +2327,13 @@ impl Agent {
 
         let active_dispatcher = {
             let base_provider_messages = self.tool_dispatcher.to_provider_messages(&self.history);
-            let (vision_provider_box, _degrade_strip_images) =
+            let (vision_provider_box, _degrade_strip_images, _image_marker_count) =
                 crate::agent::turn::resolve_vision_provider(
                     self.model_provider.as_ref(),
                     &base_provider_messages,
                     &self.multimodal_config,
                     &self.model_provider_name,
+                    self.config.as_deref(),
                 )
                 .map_err(|error| StreamedTurnError {
                     error,
@@ -2457,6 +2460,7 @@ impl Agent {
                                     temperature: self.temperature,
                                 },
                                 crate::agent::loop_::ResolvedIo {
+                provider_config: self.config.as_deref(),
                                     tools_registry: &self.tools,
                                     observer: self.observer.as_ref(),
                                     silent: true,

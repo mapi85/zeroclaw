@@ -1,4 +1,4 @@
-﻿use crate::approval::ApprovalManager;
+use crate::approval::ApprovalManager;
 
 /// Format token count with thousands separators.
 fn format_tokens(n: u64) -> String {
@@ -813,6 +813,7 @@ pub async fn agent_turn(
                 temperature,
             },
             ResolvedIo {
+                provider_config: None,
                 tools_registry,
                 observer,
                 silent,
@@ -1764,6 +1765,7 @@ pub async fn run(
                                         temperature: effective_temperature,
                                     },
                                     ResolvedIo {
+                                        provider_config: Some(&config),
                                         tools_registry: &tools_registry,
                                         observer: observer.as_ref(),
                                         silent: false,
@@ -2301,6 +2303,7 @@ pub async fn run(
                                             temperature: turn_temperature,
                                         },
                                         ResolvedIo {
+                                            provider_config: Some(&config),
                                             tools_registry: &tools_registry,
                                             observer: observer.as_ref(),
                                             silent: true,
@@ -4873,6 +4876,7 @@ mod tests {
 
         let err = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -4947,6 +4951,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -5028,6 +5033,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -5114,6 +5120,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -5185,6 +5192,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -5259,6 +5267,7 @@ mod tests {
 
         let err = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -5334,6 +5343,7 @@ mod tests {
         // should succeed because there are no image markers to trigger routing.
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "scripted",
@@ -5396,6 +5406,7 @@ mod tests {
 
             run_tool_call_loop(ToolLoop {
                 exec: ResolvedAgentExecution {
+                    provider_config: None,
                     model_access: ResolvedModelAccess {
                         model_provider: &model_provider,
                         provider_name: "scripted",
@@ -5579,6 +5590,7 @@ mod tests {
 
             run_tool_call_loop(ToolLoop {
                 exec: ResolvedAgentExecution {
+                    provider_config: None,
                     model_access: ResolvedModelAccess {
                         model_provider: &model_provider,
                         provider_name: "scripted",
@@ -5701,6 +5713,7 @@ mod tests {
 
         let err = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -5775,6 +5788,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "scripted",
@@ -5848,6 +5862,7 @@ mod tests {
 
         let err = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -6012,6 +6027,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -6148,6 +6164,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -6304,6 +6321,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -6419,6 +6437,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -6589,6 +6608,7 @@ mod tests {
 
         let _ = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -6695,6 +6715,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -6785,6 +6806,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -6867,6 +6889,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -6957,6 +6980,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -7050,6 +7074,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -7148,6 +7173,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -7243,6 +7269,7 @@ mod tests {
 
         let err = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -7338,6 +7365,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -7438,6 +7466,7 @@ mod tests {
 
         let err = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -7528,6 +7557,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -7622,6 +7652,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -7718,6 +7749,7 @@ mod tests {
 
         let _result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -7800,6 +7832,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -7886,6 +7919,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -7967,6 +8001,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8046,6 +8081,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8128,6 +8164,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8207,6 +8244,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8285,6 +8323,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8355,6 +8394,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8426,6 +8466,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8497,6 +8538,7 @@ mod tests {
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8570,6 +8612,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8648,6 +8691,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8738,6 +8782,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8811,6 +8856,7 @@ Done."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8887,6 +8933,7 @@ Done."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -8961,6 +9008,7 @@ Done."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -9036,6 +9084,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -9168,6 +9217,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -9251,6 +9301,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -9338,6 +9389,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -9448,6 +9500,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -9563,6 +9616,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -9652,6 +9706,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -9752,6 +9807,7 @@ This is an example, not an invocation."#;
         let turn_id = uuid::Uuid::new_v4().to_string();
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "mock-provider",
@@ -10632,6 +10688,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -10734,6 +10791,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -10835,6 +10893,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -10936,6 +10995,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -11092,6 +11152,7 @@ This is an example, not an invocation."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &router,
                     provider_name: "router",
@@ -13410,6 +13471,7 @@ Let me check the result."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -13585,6 +13647,7 @@ Let me check the result."#;
                 Some(ctx),
                 run_tool_call_loop(ToolLoop {
                     exec: ResolvedAgentExecution {
+                        provider_config: None,
                         model_access: ResolvedModelAccess {
                             model_provider: &model_provider,
                             provider_name: "mock-provider",
@@ -13659,6 +13722,7 @@ Let me check the result."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &provider,
                     provider_name: "recording-provider",
@@ -13772,6 +13836,7 @@ Let me check the result."#;
                 Some(ctx),
                 run_tool_call_loop(ToolLoop {
                     exec: ResolvedAgentExecution {
+                        provider_config: None,
                         model_access: ResolvedModelAccess {
                             model_provider: &model_provider,
                             provider_name: "mock-provider",
@@ -13851,6 +13916,7 @@ Let me check the result."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",
@@ -13937,6 +14003,7 @@ Let me check the result."#;
 
         let _ = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "anthropic.personal",
@@ -15078,6 +15145,7 @@ Let me check the result."#;
 
         let result = run_tool_call_loop(ToolLoop {
             exec: ResolvedAgentExecution {
+                provider_config: None,
                 model_access: ResolvedModelAccess {
                     model_provider: &model_provider,
                     provider_name: "mock-provider",

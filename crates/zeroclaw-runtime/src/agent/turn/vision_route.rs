@@ -4,11 +4,36 @@ use anyhow::Result;
 use zeroclaw_config::schema::MultimodalConfig;
 use zeroclaw_providers::{ChatMessage, ModelProvider, ProviderCapabilityError, multimodal};
 
+/// Build the on-demand vision provider from its config reference.
+///
+/// `vp` accepts either a bare family (`"gemini"`) or a dotted
+/// `family.alias` reference (`"gemini.default"`) into
+/// `[providers.models.<family>.<alias>]`. With a `Config` in hand the
+/// alias-aware factory resolves that entry's api_key/uri/model; without
+/// one, construction falls back to the family default (env credentials).
+fn build_vision_provider(
+    vp: &str,
+    provider_config: Option<&zeroclaw_config::schema::Config>,
+) -> anyhow::Result<Box<dyn ModelProvider>> {
+    let (family, alias) = vp.split_once('.').unwrap_or((vp, "default"));
+    match provider_config {
+        Some(cfg) => zeroclaw_providers::create_model_provider_for_alias(
+            cfg,
+            family,
+            alias,
+            None,
+            &zeroclaw_providers::ModelProviderRuntimeOptions::default(),
+        ),
+        None => zeroclaw_providers::create_model_provider(family, None),
+    }
+}
+
 pub(crate) fn resolve_vision_provider(
     model_provider: &dyn ModelProvider,
     history: &[ChatMessage],
     multimodal_config: &MultimodalConfig,
     provider_name: &str,
+    provider_config: Option<&zeroclaw_config::schema::Config>,
 ) -> Result<(Option<Box<dyn ModelProvider>>, bool, usize)> {
     let image_marker_count = multimodal::count_image_markers(history);
     let latest_user_image_marker_count = multimodal::count_latest_user_image_markers(history);
@@ -18,7 +43,7 @@ pub(crate) fn resolve_vision_provider(
         && !model_provider.supports_vision()
     {
         if let Some(ref vp) = multimodal_config.vision_model_provider {
-            let vp_instance = zeroclaw_providers::create_model_provider(vp, None).map_err(|e| {
+            let vp_instance = build_vision_provider(vp, provider_config).map_err(|e| {
                 ::zeroclaw_log::record!(
                     ERROR,
                     ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Fail)

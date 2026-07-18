@@ -132,6 +132,7 @@ async fn parity_l1_engine_honors_excluded_tools() {
                 temperature: None,
             },
             ResolvedIo {
+                provider_config: None,
                 tools_registry: &tools_registry,
                 observer: &observability::NoopObserver {},
                 silent: true,

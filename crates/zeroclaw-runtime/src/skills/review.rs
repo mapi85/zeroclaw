@@ -84,6 +84,7 @@ pub async fn maybe_run_skill_review(
                         temperature: Some(0.3),
                     },
                     crate::agent::loop_::ResolvedIo {
+                provider_config: None,
                         tools_registry: &tools,
                         observer,
                         // low so the fork doesn't ramble

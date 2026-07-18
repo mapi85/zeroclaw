@@ -206,6 +206,7 @@ pub async fn run_tool_call_loop(p: ToolLoop<'_>) -> Result<String> {
         context_token_budget,
         receipt_generator,
         knobs,
+        provider_config,
     } = exec;
 
     let ingress_policy_cfg = IngressPolicy::default();
@@ -494,7 +495,13 @@ pub async fn run_tool_call_loop(p: ToolLoop<'_>) -> Result<String> {
         )?;
 
         let (vision_model_provider_box, degrade_strip_images, image_marker_count) =
-            resolve_vision_provider(model_provider, history, multimodal_config, provider_name)?;
+            resolve_vision_provider(
+                model_provider,
+                history,
+                multimodal_config,
+                provider_name,
+                provider_config,
+            )?;
 
         let (active_model_provider, active_model_provider_name, active_model): (
             &dyn ModelProvider,
@@ -1283,6 +1290,7 @@ async fn drive_live_sop_actions(
                                     temperature,
                                 },
                                 ResolvedIo {
+                provider_config: None,
                                     tools_registry,
                                     observer,
                                     silent,

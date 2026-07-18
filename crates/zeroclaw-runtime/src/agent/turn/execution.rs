@@ -81,6 +81,11 @@ pub struct ResolvedAgentExecution<'a> {
     pub receipt_generator: Option<&'a ReceiptGenerator>,
     /// Fine-grained loop behavior flags.
     pub knobs: &'a LoopKnobs,
+    /// Full config for alias-aware construction of the on-demand vision
+    /// provider (`[providers.models.<family>.<alias>]` credentials/endpoint).
+    /// `None` on paths without config access — vision then falls back to
+    /// family-default construction with env credentials.
+    pub provider_config: Option<&'a zeroclaw_config::schema::Config>,
 }
 
 /// The per-turn I/O wiring half of [`ResolvedAgentExecution::resolve`]'s input:
@@ -96,6 +101,7 @@ pub struct ResolvedIo<'a> {
     pub activated_tools: Option<&'a Arc<Mutex<ActivatedToolSet>>>,
     pub model_switch_callback: Option<ModelSwitchCallback>,
     pub receipt_generator: Option<&'a ReceiptGenerator>,
+    pub provider_config: Option<&'a zeroclaw_config::schema::Config>,
 }
 
 /// The resolved per-agent runtime knobs half of [`ResolvedAgentExecution::resolve`]'s
@@ -139,6 +145,7 @@ impl<'a> ResolvedAgentExecution<'a> {
             context_token_budget: runtime.context_token_budget,
             receipt_generator: io.receipt_generator,
             knobs: runtime.knobs,
+            provider_config: io.provider_config,
         }
     }
 }

@@ -5346,6 +5346,7 @@ async fn process_channel_message_body(
                         temperature: thinking.effective_temperature,
                     },
                     ResolvedIo {
+                        provider_config: Some(&ctx.prompt_config),
                         tools_registry: ctx.tools_registry.as_ref(),
                         observer: notify_observer.as_ref() as &dyn Observer,
                         silent: true,

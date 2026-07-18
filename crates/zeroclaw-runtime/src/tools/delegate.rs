@@ -2622,6 +2622,7 @@ impl DelegateTool {
                         temperature,
                     },
                     ResolvedIo {
+                provider_config: None,
                         tools_registry: &sub_tools,
                         observer: &noop_observer,
                         silent: true,
