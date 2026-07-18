@@ -17,13 +17,23 @@ fn build_vision_provider(
 ) -> anyhow::Result<Box<dyn ModelProvider>> {
     let (family, alias) = vp.split_once('.').unwrap_or((vp, "default"));
     match provider_config {
-        Some(cfg) => zeroclaw_providers::create_model_provider_for_alias(
-            cfg,
-            family,
-            alias,
-            None,
-            &zeroclaw_providers::ModelProviderRuntimeOptions::default(),
-        ),
+        Some(cfg) => {
+            // The factory contract puts credential lookup on the caller: pass
+            // the alias entry's api_key explicitly (same pattern as the routed
+            // and fallback provider builders in zeroclaw-providers).
+            let api_key = cfg
+                .providers
+                .models
+                .find(family, alias)
+                .and_then(|entry| entry.api_key.as_deref());
+            zeroclaw_providers::create_model_provider_for_alias(
+                cfg,
+                family,
+                alias,
+                api_key,
+                &zeroclaw_providers::ModelProviderRuntimeOptions::default(),
+            )
+        }
         None => zeroclaw_providers::create_model_provider(family, None),
     }
 }
