@@ -49,7 +49,15 @@ pub(crate) fn resolve_vision_provider(
     let latest_user_image_marker_count = multimodal::count_latest_user_image_markers(history);
 
     let mut degrade_strip_images = false;
-    let vision_model_provider_box: Option<Box<dyn ModelProvider>> = if image_marker_count > 0
+    // Route to the vision provider only when the LATEST user message carries an
+    // image (the user just sent one this turn). A marker merely carried over in
+    // the long-lived session history must not re-route every subsequent
+    // text-only turn through the vision model — that model runs without the
+    // agent's tool wiring, so a sticky route silently strips the agent of its
+    // tools for the rest of the session ("I'll check that" with no tool call).
+    // Carried-over markers degrade to text-only with markers stripped instead.
+    let vision_model_provider_box: Option<Box<dyn ModelProvider>> = if latest_user_image_marker_count
+        > 0
         && !model_provider.supports_vision()
     {
         if let Some(ref vp) = multimodal_config.vision_model_provider {
@@ -83,7 +91,7 @@ pub(crate) fn resolve_vision_provider(
                 .into());
             }
             Some(vp_instance)
-        } else if latest_user_image_marker_count > 0 {
+        } else {
             return Err(ProviderCapabilityError {
                         model_provider: provider_name.to_string(),
                         capability: "vision".to_string(),
@@ -92,21 +100,21 @@ pub(crate) fn resolve_vision_provider(
                         ),
                     }
                     .into());
-        } else {
-            ::zeroclaw_log::record!(
-                WARN,
-                ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note)
-                    .with_category(::zeroclaw_log::EventCategory::Provider)
-                    .with_outcome(::zeroclaw_log::EventOutcome::Unknown)
-                    .with_attrs(::serde_json::json!({
-                        "model_provider": provider_name,
-                        "image_marker_count": image_marker_count,
-                    })),
-                "no vision route for carried-over/tool-result image marker(s); degrading to text-only (markers stripped)"
-            );
-            degrade_strip_images = true;
-            None
         }
+    } else if image_marker_count > 0 && !model_provider.supports_vision() {
+        ::zeroclaw_log::record!(
+            WARN,
+            ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note)
+                .with_category(::zeroclaw_log::EventCategory::Provider)
+                .with_outcome(::zeroclaw_log::EventOutcome::Unknown)
+                .with_attrs(::serde_json::json!({
+                    "model_provider": provider_name,
+                    "image_marker_count": image_marker_count,
+                })),
+            "carried-over/tool-result image marker(s) only; staying on the text provider (markers stripped)"
+        );
+        degrade_strip_images = true;
+        None
     } else {
         None
     };
