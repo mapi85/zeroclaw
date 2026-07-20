@@ -1296,7 +1296,7 @@ fn push_pinned_entries(
     };
 
     let built: std::sync::Arc<dyn ModelProvider> = std::sync::Arc::from(built);
-    out.push(ReliableModelProviderEntry::new(
+    out.push(ReliableModelProviderEntry::new_pinned(
         family,
         cooldown_key.clone(),
         Box::new(crate::model_pin::ModelPinnedProvider::new(
@@ -1304,12 +1304,13 @@ fn push_pinned_entries(
             primary_model,
             Box::new(std::sync::Arc::clone(&built)),
         )),
+        primary_model,
     ));
     for model in extra_models {
         if model.trim().is_empty() || model == primary_model {
             continue;
         }
-        out.push(ReliableModelProviderEntry::new(
+        out.push(ReliableModelProviderEntry::new_pinned(
             family,
             cooldown_key.clone(),
             Box::new(crate::model_pin::ModelPinnedProvider::new(
@@ -1317,6 +1318,7 @@ fn push_pinned_entries(
                 model,
                 Box::new(std::sync::Arc::clone(&built)),
             )),
+            model.as_str(),
         ));
     }
 }

@@ -610,6 +610,14 @@ pub(crate) struct ReliableModelProviderEntry {
     display_name: String,
     cooldown_key: String,
     provider: Box<dyn ModelProvider>,
+    /// Set when `provider` is a `ModelPinnedProvider` that ignores the model
+    /// argument it's called with and always dispatches its own pinned model.
+    /// Attempt/failure logging must report this instead of the caller-requested
+    /// model, or operators see a misleading "model=X" for an entry that never
+    /// actually requested X from the wire (e.g. a zai.default outage falling
+    /// over to an ollama fallback pinned to a local model: the log would
+    /// otherwise show zai's model name against the ollama attempt).
+    pinned_model: Option<String>,
 }
 
 impl ReliableModelProviderEntry {
@@ -622,7 +630,29 @@ impl ReliableModelProviderEntry {
             display_name: display_name.into(),
             cooldown_key: cooldown_key.into(),
             provider,
+            pinned_model: None,
         }
+    }
+
+    pub(crate) fn new_pinned(
+        display_name: impl Into<String>,
+        cooldown_key: impl Into<String>,
+        provider: Box<dyn ModelProvider>,
+        pinned_model: impl Into<String>,
+    ) -> Self {
+        Self {
+            display_name: display_name.into(),
+            cooldown_key: cooldown_key.into(),
+            provider,
+            pinned_model: Some(pinned_model.into()),
+        }
+    }
+
+    /// The model name to report in logs/errors for an attempt against this
+    /// entry: the pinned model when one is set, otherwise the caller-requested
+    /// model actually passed through to `provider`.
+    fn log_model<'a>(&'a self, requested: &'a str) -> &'a str {
+        self.pinned_model.as_deref().unwrap_or(requested)
     }
 }
 
@@ -1499,9 +1529,10 @@ impl ModelProvider for ReliableModelProvider {
         for current_model in &models {
             for entry in &self.model_providers {
                 let provider_name = entry.display_name.as_str();
+                let log_model = entry.log_model(current_model);
                 if self.provider_should_skip_for_cooldown(entry) {
                     self.log_cooldown_skip(provider_name);
-                    Self::record_cooldown_skip_failure(&mut failures, provider_name, current_model);
+                    Self::record_cooldown_skip_failure(&mut failures, provider_name, log_model);
                     continue;
                 }
 
@@ -1527,7 +1558,7 @@ impl ModelProvider for ReliableModelProvider {
                                 self.backoff_after_empty_completion(
                                     &mut failures,
                                     provider_name,
-                                    current_model,
+                                    log_model,
                                     attempt,
                                     &mut backoff_ms,
                                 )
@@ -1543,7 +1574,7 @@ impl ModelProvider for ReliableModelProvider {
                                     .map(|entry| entry.display_name.as_str())
                                     != Some(provider_name)
                             {
-                                ::zeroclaw_log::record!(INFO, ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note).with_attrs(::serde_json::json!({"model_provider": provider_name, "model": *current_model, "attempt": attempt, "original_model": model, "context_truncated": context_truncated})), "ModelProvider recovered (failover/retry)");
+                                ::zeroclaw_log::record!(INFO, ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note).with_attrs(::serde_json::json!({"model_provider": provider_name, "model": log_model, "attempt": attempt, "original_model": model, "context_truncated": context_truncated})), "ModelProvider recovered (failover/retry)");
                                 let primary = self
                                     .model_providers
                                     .first()
@@ -1553,7 +1584,7 @@ impl ModelProvider for ReliableModelProvider {
                                     primary,
                                     model,
                                     provider_name,
-                                    current_model,
+                                    log_model,
                                 );
                             }
                             return Ok(resp);
@@ -1564,7 +1595,7 @@ impl ModelProvider for ReliableModelProvider {
                                 let dropped = truncate_for_context(&mut effective_messages);
                                 if dropped > 0 {
                                     context_truncated = true;
-                                    ::zeroclaw_log::record!(WARN, ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note).with_outcome(::zeroclaw_log::EventOutcome::Unknown).with_attrs(::serde_json::json!({"model_provider": provider_name, "model": *current_model, "dropped": dropped, "remaining": effective_messages.len()})), "Context window exceeded; truncated history and retrying");
+                                    ::zeroclaw_log::record!(WARN, ::zeroclaw_log::Event::new(module_path!(), ::zeroclaw_log::Action::Note).with_outcome(::zeroclaw_log::EventOutcome::Unknown).with_attrs(::serde_json::json!({"model_provider": provider_name, "model": log_model, "dropped": dropped, "remaining": effective_messages.len()})), "Context window exceeded; truncated history and retrying");
                                     continue; // Retry with truncated messages (counts as an attempt)
                                 }
                                 // Nothing to truncate (system prompt alone exceeds
@@ -1574,7 +1605,7 @@ impl ModelProvider for ReliableModelProvider {
                                 push_failure(
                                     &mut failures,
                                     provider_name,
-                                    current_model,
+                                    log_model,
                                     attempt + 1,
                                     self.max_retries + 1,
                                     "non_retryable",
@@ -1601,7 +1632,7 @@ impl ModelProvider for ReliableModelProvider {
                             push_failure(
                                 &mut failures,
                                 provider_name,
-                                current_model,
+                                log_model,
                                 attempt + 1,
                                 self.max_retries + 1,
                                 failure_reason,
@@ -1629,7 +1660,7 @@ impl ModelProvider for ReliableModelProvider {
                                     .with_attrs(
                                         provider_failure_attrs(
                                             provider_name,
-                                            current_model,
+                                            log_model,
                                             &error_detail,
                                             &diagnostic,
                                         )
@@ -1640,7 +1671,7 @@ impl ModelProvider for ReliableModelProvider {
                             }
 
                             if rate_limited && self.model_providers.len() > 1 {
-                                self.cool_down_rate_limited_provider(entry, current_model, &e);
+                                self.cool_down_rate_limited_provider(entry, log_model, &e);
                                 break;
                             }
 
@@ -1656,7 +1687,7 @@ impl ModelProvider for ReliableModelProvider {
                                     .with_attrs(
                                         provider_retry_attrs(
                                             provider_name,
-                                            current_model,
+                                            log_model,
                                             attempt + 1,
                                             wait,
                                             failure_reason,
@@ -1679,7 +1710,7 @@ impl ModelProvider for ReliableModelProvider {
                         .with_outcome(::zeroclaw_log::EventOutcome::Unknown)
                         .with_attrs(provider_exhausted_attrs(
                             provider_name,
-                            current_model,
+                            log_model,
                             last_error_detail.as_deref(),
                             last_diagnostic.as_ref(),
                         )),
