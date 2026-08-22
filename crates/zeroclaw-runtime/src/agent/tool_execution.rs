@@ -800,6 +800,7 @@ mod tests {
             name: name.to_string(),
             arguments: serde_json::json!({}),
             tool_call_id: None,
+            parse_error: None,
         }
     }
 

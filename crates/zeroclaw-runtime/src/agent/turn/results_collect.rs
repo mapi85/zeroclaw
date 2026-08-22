@@ -249,6 +249,7 @@ mod tests {
                 name: "file_read".to_string(),
                 arguments: serde_json::json!({ "path": format!("file_{i}.rs") }),
                 tool_call_id: None,
+                parse_error: None,
             });
             ordered.push(Some((
                 "file_read".to_string(),
@@ -307,6 +308,7 @@ mod tests {
                 name: "file_read".to_string(),
                 arguments: serde_json::json!({ "path": format!("file_{iteration}.rs") }),
                 tool_call_id: None,
+                parse_error: None,
             }];
             let ordered = vec![Some((
                 "file_read".to_string(),

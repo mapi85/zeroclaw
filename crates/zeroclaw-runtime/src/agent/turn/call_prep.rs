@@ -416,6 +416,7 @@ mod tests {
             name: tool_name.to_string(),
             arguments: serde_json::json!({"action": "run"}),
             tool_call_id: Some("call-1".to_string()),
+            parse_error: None,
         }];
         let mut seen = HashSet::new();
         let mut prompt_seen = HashSet::new();

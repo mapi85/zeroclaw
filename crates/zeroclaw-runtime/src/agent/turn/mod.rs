@@ -730,6 +730,11 @@ pub async fn run_tool_call_loop(mut p: ToolLoop<'_>) -> Result<String> {
             activated_tools,
         )?;
 
+        // Markers this iteration's model actually sees. Upstream's
+        // resolve_vision_provider counts these internally but no longer returns
+        // the count, so recompute it here for the post-dispatch marker rewrite.
+        let image_marker_count =
+            zeroclaw_providers::multimodal::count_image_markers(turn_state.history);
         let (vision_model_provider_box, degrade_strip_images) = resolve_vision_provider(
             config,
             model_provider,
@@ -1190,7 +1195,7 @@ pub async fn run_tool_call_loop(mut p: ToolLoop<'_>) -> Result<String> {
             // Vision model just processed this turn's images — replace markers with
             // [image] so subsequent text-only turns don't re-encode the raw data.
             if image_marker_count > 0 {
-                for m in history.iter_mut() {
+                for m in turn_state.history.iter_mut() {
                     if m.content.contains("[IMAGE:") {
                         m.content = zeroclaw_providers::multimodal::replace_image_markers_with_placeholder(&m.content);
                     }
@@ -1476,7 +1481,7 @@ pub async fn run_tool_call_loop(mut p: ToolLoop<'_>) -> Result<String> {
         // Vision model processed images this iteration — replace markers so the next
         // iteration doesn't re-encode or re-route them through the vision model.
         if image_marker_count > 0 {
-            for m in history.iter_mut() {
+            for m in turn_state.history.iter_mut() {
                 if m.content.contains("[IMAGE:") {
                     m.content = zeroclaw_providers::multimodal::replace_image_markers_with_placeholder(&m.content);
                 }
